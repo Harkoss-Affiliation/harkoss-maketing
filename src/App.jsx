@@ -1,4 +1,3 @@
-\
 /* src/App.jsx */
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +16,7 @@ export default function App(){
   const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [products,setProducts]=useState([]); const [query,setQuery]=useState(""); const [filtersOpen,setFiltersOpen]=useState(false); const [cart,setCart]=useState(loadCart()); const [filters,setFilters]=useState({priceMin:0,priceMax:1000,commissionMin:0,category:"",merchant:""});
 
   useEffect(()=>{ saveCart(cart); },[cart]);
-  useEffect(()=>{ (async ()=>{ setLoading(true); try{ const list = await fetchEffinityProducts(); setProducts(list); if(list.length){ const prices=list.map(p=>p.price); setFilters(f=>({...f,priceMin:Math.max(0,Math.floor(Math.min(...prices))), priceMax:Math.ceil(Math.max(...prices))})); } }catch(e){ setError("Échec chargement produits"); } finally{ setLoading(false); } })(); },[]);
+  useEffect(()=>{ (async ()=>{ setLoading(true); try{ const list = await fetchEffinityProducts(); setProducts(list); if(list.length){ const prices=list.map(p=>p.price); setFilters(f=>({...f,priceMin:Math.max(0,Math.floor(Math.min(...prices))), priceMax:Math.ceil(Math.max(...prices))})); } }catch(e){ setError("Echec chargement produits"); } finally{ setLoading(false); } })(); },[]);
 
   const categories = useMemo(()=>Array.from(new Set(products.map(p=>p.raw?.category||"")).values()).filter(Boolean),[products]);
   const filtered = useMemo(()=> products.filter(p=> p.price>=filters.priceMin && p.price<=filters.priceMax ), [products, filters]);
