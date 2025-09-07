@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   try {
     const key = process.env.EFFINITY_KEY;
     if (!key) {
-      return res.status(500).json({ error: "EFFINITY_KEY non configuree" });
+      return res.status(500).json({ error: "Missing EFFINITY_KEY" });
     }
 
     // URL du flux Effinity
