@@ -1,34 +1,35 @@
 // pages/api/effinity.js
-// Proxy securise : lit la cle depuis process.env.EFFINITY_KEY
+import fetch from "node-fetch";
+
+let cache = null;
+let lastFetch = 0;
+
 export default async function handler(req, res) {
+  const now = Date.now();
+
+  // Cache 30 minutes
+  if (cache && (now - lastFetch < 30 * 60 * 1000)) {
+    return res.status(200).json(cache);
+  }
+
   try {
-    const key = process.env.EFFINITY_KEY;
-    if (!key) {
-      return res.status(500).json({ error: "Missing EFFINITY_KEY" });
+    const url = `https://apiv2.effiliation.com/apiv2/productfeeds.json?key=${process.env.EFFINITY_KEY}`;
+    const r = await fetch(url);
+
+    if (!r.ok) {
+      throw new Error(`Effinity upstream error: ${r.status}`);
     }
 
-    // URL du flux Effinity
-    const url = `https://apiv2.effiliation.com/apiv2/productfeeds.json?key=l9bApWf7Jea556N6ug3srcdIM476fKfi`;
+    const data = await r.json();
 
-    const r = await fetch(url, { headers: { Accept: "application/json" } });
-    const text = await r.text(); // on lit toujours en texte brut
+    cache = data;
+    lastFetch = now;
 
-    // ✅ On essaie d'abord de parser en JSON
-    try {
-      const data = JSON.parse(text);
-      res.setHeader("Cache-Control", "s-maxage=900, stale-while-revalidate=3600");
-      return res.status(200).json(data);
-    } catch (jsonErr) {
-      // ❌ Si ce n'est pas du JSON, on renvoie le texte brut (probablement XML ou erreur HTML)
-      console.error("Reponse Effinity non-JSON:", text.slice(0, 300));
-      return res.status(502).json({
-        error: "Reponse Effinity non-JSON",
-        preview: text.slice(0, 300) // renvoie juste les 300 premiers caracteres
-      });
-    }
+    return res.status(200).json(data);
   } catch (e) {
-    console.error("Erreur /api/effinity:", e);
-    return res.status(500).json({ error: "Impossible de contacter Effinity", details: String(e) });
+    console.error("Erreur API Effinity:", e.message);
+    return res.status(500).json({ error: "Effinity fetch error", details: e.message });
   }
 }
+
 
