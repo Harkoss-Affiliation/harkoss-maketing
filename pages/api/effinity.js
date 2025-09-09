@@ -60,7 +60,7 @@ export default async function handler(req, res) {
 
   try {
     // On force la version XML (plus fiable côté Effinity)
-    const url = `https://apiv2.effiliation.com/apiv2/productfeeds.xml?key=${encodeURIComponent(key)}`;
+    const url = `https://products.effinity.fr/product-output/output/23126372?apikey=${encodeURIComponent(key)}`;
     const r = await fetch(url, { headers: { Accept: "application/xml, text/xml, */*" } });
 
     // upstream non ok -> renvoyer code et body pour le debug
