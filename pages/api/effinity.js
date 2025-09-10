@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import { parseStringPromise } from "xml2js";
 
 export default async function handler(req, res) {
   const key = process.env.EFFINITY_KEY;
@@ -7,18 +8,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Flux JSON standardisé Effinity
     const url = `https://apiv2.effiliation.com/apiv2/productfeeds.json?key=${encodeURIComponent(key)}`;
     const r = await fetch(url);
+    const text = await r.text();
 
-    if (!r.ok) {
-      throw new Error(`Effinity erreur HTTP ${r.status}`);
+    let data;
+    if (text.trim().startsWith("<")) {
+      // Réponse XML → on parse
+      const parsed = await parseStringPromise(text, { explicitArray: false, mergeAttrs: true });
+      data = parsed;
+    } else {
+      // Réponse JSON → on parse normalement
+      data = JSON.parse(text);
     }
 
-    const data = await r.json();
+    // Extraction simplifiée des produits
+    const list = Array.isArray(data?.products)
+      ? data.products
+      : data?.items || data?.data || [];
 
-    // Normalisation des produits
-    const products = (data?.products || data?.items || data?.data || []).map(p => ({
+    const products = list.map(p => ({
       id: p.id || p.sku || Math.random().toString(36).slice(2),
       title: p.title || p.name || p.product_name || "Produit",
       price: parseFloat(p.price || p.prix || p.amount) || 0,
