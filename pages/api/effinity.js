@@ -13,16 +13,21 @@ export default async function handler(req, res) {
     const text = await r.text();
 
     let data;
-    if (text.trim().startsWith("<")) {
-      // Réponse XML → on parse
-      const parsed = await parseStringPromise(text, { explicitArray: false, mergeAttrs: true });
-      data = parsed;
-    } else {
-      // Réponse JSON → on parse normalement
+    if (text.trim().startsWith("{")) {
+      // JSON
       data = JSON.parse(text);
+    } else if (text.trim().startsWith("<")) {
+      // XML
+      data = await parseStringPromise(text, { explicitArray: false, mergeAttrs: true });
+    } else {
+      // Ni JSON ni XML → debug
+      return res.status(502).json({
+        error: "Effinity response not JSON/XML",
+        preview: text.substring(0, 200),
+      });
     }
 
-    // Extraction simplifiée des produits
+    // Extraction simplifiée
     const list = Array.isArray(data?.products)
       ? data.products
       : data?.items || data?.data || [];
@@ -38,6 +43,7 @@ export default async function handler(req, res) {
       merchant: p.merchant || p.merchant_name || "",
     }));
 
+    console.log("Produits trouvés:", products.length);
     res.status(200).json(products);
   } catch (err) {
     console.error("Erreur API Effinity:", err);
