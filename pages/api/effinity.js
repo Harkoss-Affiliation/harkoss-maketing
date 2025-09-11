@@ -1,10 +1,22 @@
 import fetch from "node-fetch";
 import { parseStringPromise } from "xml2js";
 
+let cache = null;
+let cacheTime = 0;
+const CACHE_DURATION = 1000 * 60 * 60 * 6; // 6 heures
+
 export default async function handler(req, res) {
   const key = process.env.EFFINITY_KEY;
   if (!key) {
     return res.status(500).json({ error: "EFFINITY_KEY non configurée" });
+  }
+
+  const now = Date.now();
+
+  // ✅ Si le cache est encore valide
+  if (cache && now - cacheTime < CACHE_DURATION) {
+    console.log("→ Réponse envoyée depuis le cache");
+    return res.status(200).json(cache);
   }
 
   try {
@@ -20,14 +32,13 @@ export default async function handler(req, res) {
       // XML
       data = await parseStringPromise(text, { explicitArray: false, mergeAttrs: true });
     } else {
-      // Ni JSON ni XML → debug
       return res.status(502).json({
         error: "Effinity response not JSON/XML",
         preview: text.substring(0, 200),
       });
     }
 
-    // Extraction simplifiée
+    // Extraction simplifiée des produits
     const list = Array.isArray(data?.products)
       ? data.products
       : data?.items || data?.data || [];
@@ -44,6 +55,11 @@ export default async function handler(req, res) {
     }));
 
     console.log("Produits trouvés:", products.length);
+
+    // ✅ Sauvegarde dans le cache
+    cache = products;
+    cacheTime = now;
+
     res.status(200).json(products);
   } catch (err) {
     console.error("Erreur API Effinity:", err);
